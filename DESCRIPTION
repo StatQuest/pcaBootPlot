@@ -12,3 +12,4 @@ LazyData: true
 Imports: RColorBrewer
 Suggests: knitr
 VignetteBuilder: knitr
+URL: https://github.com/starmerj/pcaBootPlot
