@@ -1,8 +1,8 @@
 #' Create 2D PCA Plots with Bootstrapping
-#' 
-#' pcaBootPlot draws a 2D PCA plot using the first 2 principal components using 
+#'
+#' pcaBootPlot draws a 2D PCA plot using the first 2 principal components using
 #'   the original and bootstrapped data to give some sense of variability.
-#' 
+#'
 #' @param data A data.frame where the first column is named "ID" and contains IDs
 #'   for each item measured. Measurements for each sample are in subsequent columns.
 #' @param groups The default value is \strong{\code{NULL}}.\cr\cr
@@ -15,10 +15,10 @@
 #'   red circles and the treated samples will be blue triangles.
 #' @param min.value The default value is \strong{1}.\cr\cr
 #'   This allows you to filter out rows (entries) that will not conribute
-#'   to the PCA. For example, if you are performing PCA on RNA-seq data, you 
+#'   to the PCA. For example, if you are performing PCA on RNA-seq data, you
 #'   may wish to filter out genes with less than 1 read per sample, 1 read per
-#'   group or 1 read overall. If you set \code{all.min.value} to \code{TRUE}, 
-#'   it will filter entries where at least one sample has less than 
+#'   group or 1 read overall. If you set \code{all.min.value} to \code{TRUE},
+#'   it will filter entries where at least one sample has less than
 #'   \code{min.value}. If you do not set \code{all.min.value} to \code{TRUE},
 #'   then filtering will be performed by group if \code{groups} are specified.
 #'   In this case, an entry will be filtered out if one or more groups have
@@ -35,39 +35,46 @@
 #'   iterations to be performed.
 #' @param log2.transform The default value is \strong{\code{TRUE}}. Should the data be log2
 #'   transformed or not?
-#' @param pdf.filename If you wish to save the the graph as a PDF, you may use 
+#' @param pdf.filename If you wish to save the the graph as a PDF, you may use
 #'   this argument to specify the filename.
 #' @param pdf.width If you specify a value for \code{pdf.filename}, you can specify
 #'   a width for the saved graph. The default value is 6 inches.
-#' @param pdf.height If you specify a value for \code{pdf.filename}, you can 
+#' @param pdf.height If you specify a value for \code{pdf.filename}, you can
 #'   specify a height for the saved graph. The default value is 6 inches.
-#' @param draw.legend The default value is \strong{\code{FALSE}}. Should there be a legend 
+#' @param draw.legend The default value is \strong{\code{FALSE}}. Should there be a legend
 #'   in the graph?
 #' @param legend.names If \code{draw.legend} is \code{TRUE}, you can specify the
 #'   names of the groups listed in the legend.
 #' @param legend.x,legend.y If \code{draw.legend} is \code{TRUE}, you can specify
 #'  the x and y axis coordinate for its top left corner.
-#' @param transparency The default value is \strong{77}. This allow you to set how 
-#'   transparent the bootstrapped symbols are in the graph. Values range from 00 
+#' @param transparency The default value is \strong{77}. This allow you to set how
+#'   transparent the bootstrapped symbols are in the graph. Values range from 00
 #'   to FF.
-#' @param min.x,min.y,max.x,max.y By default, pcaBootPlot automatically 
-#'   determines limits for the 
+#' @param min.x,min.y,max.x,max.y By default, pcaBootPlot automatically
+#'   determines limits for the
 #'   x and y axes. Use this option to override this behavior.
 #' @param correct.inversions The default value is \strong{\code{TRUE}}. Some of the
 #' boostrapped PCAs may have their axes inverted. pcaBootPlot can try to correct
-#' for this by ensuring that the PCA loading values are positively correlated 
+#' for this by ensuring that the PCA loading values are positively correlated
 #' with the orginal dataset.
-#' 
-#' @examples  
-#'   
+#' @param confidence.regions The default value is \strong{\code{FALSE}}. This option
+#' will draw circles that contain confidence.size of the bootstrapped values.
+#' @param confidence.size The default value is 0.95. A value betweeo 0 and 1 - the
+#' proportion of bootstrapped points that need to be within the confidence regions.
+#' @param step.size The default value is 1. This option determines how the radii
+#' for confidence regions are increased each iteration when trying to contain
+#' confidence.size of the bootstrapped samples.
+#'
+#' @examples
+#'
 #' sample1=rnorm(n=100, mean=100, sd=10)
 #' sample2=jitter(sample1, factor=10, amount=10)
 #' sample3=rnorm(n=100, mean=100, sd=10)
-#' 
+#'
 #' data <- data.frame(ID=c(1:100), sample1, sample2, sample3)
-#' 
-#' pcaBootPlot(data, log2.transform = FALSE)   
-#'   
+#'
+#' pcaBootPlot(data, log2.transform = FALSE)
+#'
 
 #' @export
 pcaBootPlot <- function(data=NULL, groups=NULL,
@@ -76,19 +83,22 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
                         pdf.filename=NULL,
                         pdf.width=6,
                         pdf.height=6,
-                        draw.legend=FALSE, legend.names=NULL, 
-                        legend.x=NULL, legend.y=NULL, 
+                        draw.legend=FALSE, legend.names=NULL,
+                        legend.x=NULL, legend.y=NULL,
                         transparency=77,
                         min.x=NULL, max.x=NULL, min.y=NULL, max.y=NULL,
-                        correct.inversions=TRUE) {
-  
+                        correct.inversions=TRUE,
+                        confidence.regions=FALSE,
+                        confidence.size=0.95,
+                        step.size=1) {
+
   #library(RColorBrewer)
-  
-  
+
+
   if(is.null(data)) {
-    return("You must provide a data.frame for the data parameter") 
+    return("You must provide a data.frame for the data parameter")
   }
-  
+
   ##
   ## first, we need to find duplicate entries and average the values for them.
   ##
@@ -107,27 +117,27 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
     }
     data <- rbind(data, avg.fpkms)
   }
-  
+
   ## convert data to a matrix
   IDs <- data[,1]
   data <- as.matrix(data[,2:ncol(data)])
   row.names(data) <- IDs
-  
+
   ##
-  ## Only keep entries with a minimum value (per all samples, or per group) 
+  ## Only keep entries with a minimum value (per all samples, or per group)
   ##
   cat("Filtering entries based on min.val and groups...\n")
   if (!is.null(groups)) {
-    data.factors <- as.data.frame(table(factor(groups))) 
+    data.factors <- as.data.frame(table(factor(groups)))
   }
-  
+
   if (is.null(groups) || all.min.value) {
     if (all.min.value) {
       keep <- (apply(data, 1, min) > min.value)
     } else {
       keep <- (rowSums(data[,1:ncol(data)]) > min.value)
     }
-  } else {    
+  } else {
     all.keeps <- list()
     list.index <- 1
     for(group.id in data.factors[,1]) {
@@ -138,7 +148,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
     keep <- Reduce(intersect, all.keeps)
   }
   data <- data[keep,]
-  
+
   num.genes <- nrow(data)
   if (is.null(groups)) {
     if (all.min.value) {
@@ -147,17 +157,17 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
       cat("  ", paste(num.genes, "entries had at least one sample with value >", min.value), "\n")
     }
   } else {
-    cat("  ", paste(num.genes, "entries had at least one sample per group with values >", min.value), "\n")    
+    cat("  ", paste(num.genes, "entries had at least one sample per group with values >", min.value), "\n")
   }
   #return(data)
-  
+
   if(log2.transform) {
     cat("Adding pseudo-counts and log2 transforming the data...", "\n")
     cat("   You can turn this off by setting log2.transform to FALSE.", "\n")
     data <- log2(data+1)
   }
   #return(data)
-  
+
   ## there are a bunch of ways to do PCA in R, but we'll start with a built in
   ## method (note, you have to transpose the data so that samples are rows and
   ## columns are genes)
@@ -179,52 +189,52 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   ##      for each PC. That is to say, loadings * measurements = score = rotated data
   ## pca$center = the value used for centering, if used.
   ## pca$scale = the value used for scaling, if used.
-  
+
   pc1 <- pca$rotation[,1]
   pc1.names <- names(pc1)
   pc2 <- pca$rotation[,2]
   pc2.names <- names(pc2)
-  
+
   ## now we need the absolute values and to rank these, from largest to smallest...
   #pc1.abs.names <- names(sort(abs(pc1), decreasing=TRUE))
   #pc2.abs.names <- names(sort(abs(pc2), decreasing=TRUE))
-  
+
   ## draw a scree plot:
   #plot(pca, las=1)
-  ## las=1 make the values on the y-axis easier to read (by making them 
+  ## las=1 make the values on the y-axis easier to read (by making them
   ## perpendicular to the y-axis)
-  
+
   ## print out what proportion of the variance each PC accounts for:
   #summary(pca)
-  
+
   ## Now, let's calculate the proportion of the variance for each PC and the
   ## cumulative proportion.
   pca.var <- pca$sdev^2
   pca.var.per <- round(pca.var/sum(pca.var)*100, 1)
   pca.var.cum <- cumsum(pca.var.per)
-  
-  
+
+
   ## Now let's try to bootstrap the PCA...
   cat("Bootstrapping the PCA at the entry level...\n")
-    
+
   boot.points <- data.frame()
-  
+
   for (i in 1:num.boot.samples) {
     boot.indices <- sample(x=c(1:num.genes), size=num.genes, replace=TRUE)
     boot.data <- data[boot.indices,]
     pca.boot = prcomp(t(boot.data), center=TRUE, scale. = TRUE, retx=TRUE)
-    
+
     if (correct.inversions) {
       ##
-      ## make sure the loadings correlate with the loadings in the 
+      ## make sure the loadings correlate with the loadings in the
       ## non-bootstrapped PCA
       boot.pc1 <- pca.boot$rotation[,1]
       boot.pc1.names <- levels(factor(names(boot.pc1)))
       pc1.cor <- cor(pc1[boot.pc1.names], boot.pc1[boot.pc1.names])
       if (pc1.cor < 0) {
-        pca.boot$x[,1] <- pca.boot$x[,1] * -1      
+        pca.boot$x[,1] <- pca.boot$x[,1] * -1
       }
-      
+
       boot.pc2 <- pca.boot$rotation[,2]
       boot.pc2.names <- levels(factor(names(boot.pc2)))
       pc2.cor <- cor(pc2[boot.pc1.names], boot.pc2[boot.pc1.names])
@@ -234,7 +244,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
     }
     boot.points <- rbind(boot.points, pca.boot$x[,c(1,2)])
   }
-  
+
   cat("Drawing the 2-D PCA plot with the first two PCs...\n")
   if (exists("data.factors")) {
     if (length(data.factors[,1]) == 2) {
@@ -248,12 +258,59 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
     hex.colors <- RColorBrewer::brewer.pal(n=3, name="Set1")[1]
     plot.col <- paste(hex.colors, transparency, sep="")
   }
-  
+
   plot.pch <- 1
   if (!is.null(groups)) {
     plot.pch <- (groups)[1:ncol(data)]
   }
-  
+
+  radii <- NULL
+  if (confidence.regions) {
+    cat("Calculating ", round(confidence.size * 100, digits=2), "% confidence regions\n", sep="")
+    num.cells <- nrow(pca$x)
+
+    boot.points.by.cell <- cbind(boot.points, cell=c(1:num.cells))
+    min.points <- round(num.boot.samples * confidence.size)
+    #cat("min.points: ", min.points, "\n")
+
+    radii <- vector(length=num.cells)
+
+    for (i in 1:num.cells) {
+      circle.center.x <- pca$x[i,1]
+      circle.center.y <- pca$x[i,2]
+
+      radius <- step.size
+
+      ## now collect all of the bootstrapped samples that correspond to this
+      ## cell...
+      cell.points <- boot.points.by.cell[boot.points.by.cell$cell == i,c(1,2)]
+
+      ## now figure out how big this circle needs to be to contain 95% of the
+      ## bootstrapped points.
+      done <- FALSE
+      while(!done && step.size < 100) {
+        contained.points <- sum(((cell.points[,1] - circle.center.x)^2 +
+                                   (cell.points[,2] - circle.center.y)^2) <=
+                                  (radius^2))
+
+        if (contained.points >= min.points) {
+          done <- TRUE
+          #cat("Found the radius for cell: ", i, "\n")
+          #cat("\tradius: ", radius, "\n")
+          #cat("\tcontained.points: ", contained.points, "\n")
+        } else {
+          radius <- radius + step.size
+        }
+      }
+      radii[i] <- radius
+    }
+
+    #radius <- 5
+    #symbols(pca$x[,c(1,2)], circles=radii, add=TRUE, inches=FALSE)
+
+  }
+
+
   draw.pcaBootPlot(pca=pca, boot.points=boot.points,
                    pca.var.per=pca.var.per,
                    num.boot.samples=num.boot.samples,
@@ -266,11 +323,12 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
                    legend.y=legend.y,
                    hex.colors=hex.colors,
                    transparency=transparency,
-                   min.x=min.x, max.x=max.x, min.y=min.y, max.y=max.y)
-  
+                   min.x=min.x, max.x=max.x, min.y=min.y, max.y=max.y,
+                   radii=radii)
+
   if (!is.null(pdf.filename)) {
     pdf(file=pdf.filename, width=pdf.width, height=pdf.height)
-    
+
     draw.pcaBootPlot(pca=pca, boot.points=boot.points,
                      pca.var.per=pca.var.per,
                      num.boot.samples=num.boot.samples,
@@ -283,8 +341,9 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
                      legend.y=legend.y,
                      hex.colors=hex.colors,
                      transparency=transparency,
-                     min.x=min.x, max.x=max.x, min.y=min.y, max.y=max.y)
-    
+                     min.x=min.x, max.x=max.x, min.y=min.y, max.y=max.y,
+                     radii=radii)
+
     dev.off()
   }
   cat("\nDone! Hooray!")
@@ -293,15 +352,16 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
 
 draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
                              num.boot.samples=100,
-                             plot.col=NULL, 
+                             plot.col=NULL,
                              plot.pch=NULL,
                              data.factors=NULL,
-                             draw.legend=FALSE, legend.names=NULL, 
+                             draw.legend=FALSE, legend.names=NULL,
                              legend.x=NULL, legend.y=NULL,
                              hex.colors=NULL,
                              transparency=77,
-                             min.x=NULL, max.x=NULL, min.y=NULL, max.y=NULL) {
-  
+                             min.x=NULL, max.x=NULL, min.y=NULL, max.y=NULL,
+                             radii=NULL) {
+
   if (num.boot.samples > 0) {
     if (is.null(max.x)) {
       max.x <- max(boot.points[,1], pca$x[,1])
@@ -327,7 +387,7 @@ draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
       legend.y <- 0
     }
     if ((!is.null(min.x)) & (!is.null(max.x))) {
-      x.lims <- c(min.x, max.x) 
+      x.lims <- c(min.x, max.x)
     }
     if ((!is.null(min.y)) & (!is.null(max.y))) {
       y.lims <- c(min.y, max.y)
@@ -336,7 +396,7 @@ draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
       plot(pca$x[,c(1,2)], type="n",
            xlab=paste("PC1 (", pca.var.per[1], "%)", sep=""),
            ylab=paste("PC2 (", pca.var.per[2], "%)", sep=""),
-           xlim=x.lims, ylim=y.lims)      
+           xlim=x.lims, ylim=y.lims)
     } else {
       plot(pca$x[,c(1,2)], type="n",
            xlab=paste("PC1 (", pca.var.per[1], "%)", sep=""),
@@ -344,8 +404,13 @@ draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
     }
     grid()
   }
+
+  if(!is.null(radii)) {
+    symbols(pca$x[,c(1,2)], circles=radii, add=TRUE, inches=FALSE)
+  }
+
   points(pca$x[,c(1,2)], pch=plot.pch)
-  
+
   if (draw.legend) {
     if (is.null(legend.names)) {
       legend.names <-  c(1:length(data.factors[,1]))
