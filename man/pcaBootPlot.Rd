@@ -9,7 +9,9 @@ pcaBootPlot(data = NULL, groups = NULL, min.value = 1,
   pdf.filename = NULL, pdf.width = 6, pdf.height = 6,
   draw.legend = FALSE, legend.names = NULL, legend.x = NULL,
   legend.y = NULL, transparency = 77, min.x = NULL, max.x = NULL,
-  min.y = NULL, max.y = NULL, correct.inversions = TRUE)
+  min.y = NULL, max.y = NULL, correct.inversions = TRUE,
+  confidence.regions = FALSE, confidence.size = 0.95, step.size = 0.1,
+  trim.proportion = 0.1, return.samples = FALSE)
 }
 \arguments{
 \item{data}{A data.frame where the first column is named "ID" and contains IDs
@@ -54,10 +56,10 @@ transformed or not?}
 this argument to specify the filename.}
 
 \item{pdf.width}{If you specify a value for \code{pdf.filename}, you can specify
-a width for the saved graph. The default value is 6 inches.}
+a width for the saved graph. The default value is \strong{6} inches.}
 
 \item{pdf.height}{If you specify a value for \code{pdf.filename}, you can
-specify a height for the saved graph. The default value is 6 inches.}
+specify a height for the saved graph. The default value is \strong{6} inches.}
 
 \item{draw.legend}{The default value is \strong{\code{FALSE}}. Should there be a legend
 in the graph?}
@@ -80,6 +82,27 @@ x and y axes. Use this option to override this behavior.}
 boostrapped PCAs may have their axes inverted. pcaBootPlot can try to correct
 for this by ensuring that the PCA loading values are positively correlated
 with the orginal dataset.}
+
+\item{confidence.regions}{The default value is \strong{\code{FALSE}}. This option
+will draw circles that contain confidence.size of the bootstrapped values.}
+
+\item{confidence.size}{The default value is \strong{0.95}. A value betweeo 0 and 1 - the
+proportion of bootstrapped points that need to be within the confidence regions.}
+
+\item{step.size}{The default value is \strong{0.1}. This option determines how
+the radii
+for confidence regions are increased each iteration when trying to contain
+confidence.size of the bootstrapped samples.}
+
+\item{trim.proportion}{The default value is \strong{0.0}. This is the proportion
+of entries that should be removed from the plot based on the size of the
+the confidence regions. This should be a value between 0 and 1. For example,
+if you set it to 0.1, then the top 10% of entries with the lagest confidence
+regions will be removed from the plot.}
+
+\item{return.samples}{The default value is \strong{\code{FALSE}} If this is set
+to \code{TRUE} then the program will return the names of the samples that were
+included in the plot. This can be useful if \code{trim.proportion} > 0.}
 }
 \description{
 pcaBootPlot draws a 2D PCA plot using the first 2 principal components using

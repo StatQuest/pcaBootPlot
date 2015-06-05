@@ -38,9 +38,9 @@
 #' @param pdf.filename If you wish to save the the graph as a PDF, you may use
 #'   this argument to specify the filename.
 #' @param pdf.width If you specify a value for \code{pdf.filename}, you can specify
-#'   a width for the saved graph. The default value is 6 inches.
+#'   a width for the saved graph. The default value is \strong{6} inches.
 #' @param pdf.height If you specify a value for \code{pdf.filename}, you can
-#'   specify a height for the saved graph. The default value is 6 inches.
+#'   specify a height for the saved graph. The default value is \strong{6} inches.
 #' @param draw.legend The default value is \strong{\code{FALSE}}. Should there be a legend
 #'   in the graph?
 #' @param legend.names If \code{draw.legend} is \code{TRUE}, you can specify the
@@ -59,11 +59,20 @@
 #' with the orginal dataset.
 #' @param confidence.regions The default value is \strong{\code{FALSE}}. This option
 #' will draw circles that contain confidence.size of the bootstrapped values.
-#' @param confidence.size The default value is 0.95. A value betweeo 0 and 1 - the
+#' @param confidence.size The default value is \strong{0.95}. A value betweeo 0 and 1 - the
 #' proportion of bootstrapped points that need to be within the confidence regions.
-#' @param step.size The default value is 1. This option determines how the radii
+#' @param step.size The default value is \strong{0.1}. This option determines how
+#' the radii
 #' for confidence regions are increased each iteration when trying to contain
 #' confidence.size of the bootstrapped samples.
+#' @param trim.proportion The default value is \strong{0.0}. This is the proportion
+#' of entries that should be removed from the plot based on the size of the
+#' the confidence regions. This should be a value between 0 and 1. For example,
+#' if you set it to 0.1, then the top 10% of entries with the lagest confidence
+#' regions will be removed from the plot.
+#' @param return.samples The default value is \strong{\code{FALSE}} If this is set
+#' to \code{TRUE} then the program will return the names of the samples that were
+#' included in the plot. This can be useful if \code{trim.proportion} > 0.
 #'
 #' @examples
 #'
@@ -90,7 +99,9 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
                         correct.inversions=TRUE,
                         confidence.regions=FALSE,
                         confidence.size=0.95,
-                        step.size=1) {
+                        step.size=0.1,
+                        trim.proportion=0.1,
+                        return.samples=FALSE) {
 
   #library(RColorBrewer)
 
@@ -98,6 +109,8 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   if(is.null(data)) {
     return("You must provide a data.frame for the data parameter")
   }
+  num.samples <- (ncol(data)-1)
+  cat("Performing PCA on", num.samples, "samples\n")
 
   ##
   ## first, we need to find duplicate entries and average the values for them.
@@ -110,7 +123,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
     cat("Averaging duplicated entries...\n")
     for (ID in levels(as.ordered(dup.IDs))) {
       avg.ID <- data.frame(ID=ID,
-                               t(data.frame(colMeans(data[data$ID == ID,2:ncol(data)]))))
+                           t(data.frame(colMeans(data[data$ID == ID,2:ncol(data)]))))
       row.names(avg.ID) <- 1
       avg.fpkms <- rbind(avg.fpkms, avg.ID)
       data <- data[data$ID != ID,]
@@ -150,6 +163,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   data <- data[keep,]
 
   num.genes <- nrow(data)
+
   if (is.null(groups)) {
     if (all.min.value) {
       cat("   ", paste(num.genes, "entries had all samples with values >", min.value), "\n")
@@ -245,7 +259,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
     boot.points <- rbind(boot.points, pca.boot$x[,c(1,2)])
   }
 
-  cat("Drawing the 2-D PCA plot with the first two PCs...\n")
+  ##cat("Drawing the 2-D PCA plot with the first two PCs...\n")
   if (exists("data.factors")) {
     if (length(data.factors[,1]) == 2) {
       hex.colors <- RColorBrewer::brewer.pal(n=3, name="Set1")[1:2]
@@ -265,9 +279,10 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   }
 
   radii <- NULL
-  if (confidence.regions) {
+  return.samples.vector <- NULL
+  num.cells <- nrow(pca$x)
+  if (confidence.regions | (trim.proportion > 0)) {
     cat("Calculating ", round(confidence.size * 100, digits=2), "% confidence regions\n", sep="")
-    num.cells <- nrow(pca$x)
 
     boot.points.by.cell <- cbind(boot.points, cell=c(1:num.cells))
     min.points <- round(num.boot.samples * confidence.size)
@@ -288,16 +303,13 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
       ## now figure out how big this circle needs to be to contain 95% of the
       ## bootstrapped points.
       done <- FALSE
-      while(!done && step.size < 100) {
+      while(!done) {
         contained.points <- sum(((cell.points[,1] - circle.center.x)^2 +
                                    (cell.points[,2] - circle.center.y)^2) <=
                                   (radius^2))
 
         if (contained.points >= min.points) {
           done <- TRUE
-          #cat("Found the radius for cell: ", i, "\n")
-          #cat("\tradius: ", radius, "\n")
-          #cat("\tcontained.points: ", contained.points, "\n")
         } else {
           radius <- radius + step.size
         }
@@ -305,30 +317,37 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
       radii[i] <- radius
     }
 
-    #radius <- 5
-    #symbols(pca$x[,c(1,2)], circles=radii, add=TRUE, inches=FALSE)
+    if (trim.proportion > 0) {
+      cat("Trimming samples with the most variation\n")
+      cat("\tThe top ", round(trim.proportion * 100, digits=2), "% will be removed\n", sep="")
+      radius.cutoff <- quantile(radii, (1-trim.proportion))
+      cutoff.indices <- which(radii >= radius.cutoff)
+      cat("\t", length(cutoff.indices), " samples were removed\n", sep="")
+      ## just in case we need to return the genes that were not trimmed
+      return.samples.vector <- c(1:num.samples)
+      return.samples.vector <- return.samples.vector[-cutoff.indices]
 
+      ## now we need to delete the original samples and the
+      ## bootstrapped versions of them...
+      pca$x <- pca$x[-cutoff.indices,]
+      pca$y <- pca$y[-cutoff.indices,]
+
+      rownames(boot.points) <- c(1:nrow(boot.points))
+
+      for (i in 0:(num.boot.samples-1)) {
+        offset <- i * num.samples
+        boot.points[cutoff.indices + offset,] <- NA
+      }
+      na.indices <- which(is.na(boot.points$PC1))
+      boot.points <- boot.points[-na.indices,]
+    }
   }
 
+  if (!confidence.regions) {
+    radii <- NULL
+  }
 
-  draw.pcaBootPlot(pca=pca, boot.points=boot.points,
-                   pca.var.per=pca.var.per,
-                   num.boot.samples=num.boot.samples,
-                   plot.col=plot.col,
-                   plot.pch=plot.pch,
-                   data.factors=data.factors,
-                   draw.legend=draw.legend,
-                   legend.names=legend.names,
-                   legend.x=legend.x,
-                   legend.y=legend.y,
-                   hex.colors=hex.colors,
-                   transparency=transparency,
-                   min.x=min.x, max.x=max.x, min.y=min.y, max.y=max.y,
-                   radii=radii)
-
-  if (!is.null(pdf.filename)) {
-    pdf(file=pdf.filename, width=pdf.width, height=pdf.height)
-
+  if (nrow(pca$x) > 0) {
     draw.pcaBootPlot(pca=pca, boot.points=boot.points,
                      pca.var.per=pca.var.per,
                      num.boot.samples=num.boot.samples,
@@ -344,10 +363,36 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
                      min.x=min.x, max.x=max.x, min.y=min.y, max.y=max.y,
                      radii=radii)
 
-    dev.off()
+    if (!is.null(pdf.filename)) {
+      pdf(file=pdf.filename, width=pdf.width, height=pdf.height)
+
+      draw.pcaBootPlot(pca=pca, boot.points=boot.points,
+                       pca.var.per=pca.var.per,
+                       num.boot.samples=num.boot.samples,
+                       plot.col=plot.col,
+                       plot.pch=plot.pch,
+                       data.factors=data.factors,
+                       draw.legend=draw.legend,
+                       legend.names=legend.names,
+                       legend.x=legend.x,
+                       legend.y=legend.y,
+                       hex.colors=hex.colors,
+                       transparency=transparency,
+                       min.x=min.x, max.x=max.x, min.y=min.y, max.y=max.y,
+                       radii=radii)
+
+      dev.off()
+    }
+  } else {
+    cat("\nThere were no points to plot! Bummer\n")
+    return()
   }
+
   cat("\nDone! Hooray!")
   #return("Done! Hooray!")
+  if (return.samples) {
+    return(return.samples.vector)
+  }
 }
 
 draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
@@ -362,18 +407,18 @@ draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
                              min.x=NULL, max.x=NULL, min.y=NULL, max.y=NULL,
                              radii=NULL) {
 
-  if (num.boot.samples > 0) {
+  if (num.boot.samples > 0 && (nrow(boot.points) > 0)) {
     if (is.null(max.x)) {
-      max.x <- max(boot.points[,1], pca$x[,1])
+      max.x <- max(boot.points[,1], pca$x[,1], na.rm=TRUE)
     }
     if (is.null(min.x)) {
-      min.x <- min(boot.points[,1], pca$x[,1])
+      min.x <- min(boot.points[,1], pca$x[,1], na.rm=TRUE)
     }
     if (is.null(max.y)) {
-      max.y <- max(boot.points[,2], pca$x[,1])
+      max.y <- max(boot.points[,2], pca$x[,1], na.rm=TRUE)
     }
     if (is.null(min.y)) {
-      min.y <- min(boot.points[,2], pca$x[,1])
+      min.y <- min(boot.points[,2], pca$x[,1], na.rm=TRUE)
     }
     plot(boot.points, type="n", xlim=c(min.x, max.x), ylim=c(min.y, max.y), xlab=paste("PC1 (", pca.var.per[1], "%)", sep=""),
          ylab=paste("PC2 (", pca.var.per[2], "%)", sep=""))
@@ -406,7 +451,7 @@ draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
   }
 
   if(!is.null(radii)) {
-    symbols(pca$x[,c(1,2)], circles=radii, add=TRUE, inches=FALSE)
+    symbols(pca$x[,c(1,2)], circles=radii, add=TRUE, inches=FALSE, lty=2, col="#bdbdbd77")
   }
 
   points(pca$x[,c(1,2)], pch=plot.pch)
