@@ -9,7 +9,9 @@ Description: Draws a 2D principal component plot using the first 2 principal
 Depends: R (>= 3.0.2)
 License: GPL-2
 LazyData: true
-Imports: RColorBrewer
+Imports:
+  FactorMinoR,
+  RColorBrewer
 Suggests: knitr
 VignetteBuilder: knitr
 URL: https://github.com/starmerj/pcaBootPlot
