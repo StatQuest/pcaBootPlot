@@ -10,7 +10,7 @@ Depends: R (>= 3.0.2)
 License: GPL-2
 LazyData: true
 Imports:
-  FactorMinoR,
+  FactoMineR,
   RColorBrewer
 Suggests: knitr
 VignetteBuilder: knitr

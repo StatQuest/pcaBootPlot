@@ -11,7 +11,7 @@ pcaBootPlot(data = NULL, groups = NULL, min.value = 1,
   legend.y = NULL, transparency = 77, min.x = NULL, max.x = NULL,
   min.y = NULL, max.y = NULL, correct.inversions = TRUE,
   confidence.regions = FALSE, confidence.size = 0.95, step.size = 0.1,
-  trim.proportion = 0.1, return.samples = FALSE)
+  trim.proportion = 0, return.samples = FALSE)
 }
 \arguments{
 \item{data}{A data.frame where the first column is named "ID" and contains IDs
