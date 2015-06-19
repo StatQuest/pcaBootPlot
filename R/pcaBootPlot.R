@@ -190,70 +190,85 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   ##
   ## originally I just used the built in program, "prcomp" and that worked great
   ## until sample size > 100.
+  #use.facto <- TRUE
+  use.facto <- FALSE
 
-  pca <- FactoMineR::PCA(t(data), ncp=5, graph=FALSE, scale.unit=TRUE)
-  ## arguments:
-  ## t(data)    - transposed data so that samples are rows, genes are columns
-  ## ncp        - the maximum number of principal components calculated
-  ## graph      - draw PCA plots?
-  ## scale.unit - should the variables be scaled to unit variance (yes!)
-  ##
-  ## return values:
-  ## pca$ind$coord - the values of the "rotated data" (coordinates for each
-  ##                dimension in the PCA plot). these are the scores for the
-  ##                samples for each PC. That is to say:
-  ##                loadings * measurements = score = rotated data = coordinates
-  ## pca$eig       - a matrix with three columns:
-  ##                 column 1: eigenvalues
-  ##                 column 2: percentage of variance per eigenvalue
-  ##                 column 3: cumulative percentage of variance
-  ##print(pca$ind$coord[,c(1,2)])
+  pca.data <- data.frame()
+  pc1 <- vector()
+  pc2 <- vector()
+  pc1.names <- vector()
+  pc2.names <- vector()
+  pca.var.per <- vector()
+  if (use.facto) {
+    cat("Using FactoMineR\n")
+    pca <- FactoMineR::PCA(t(data), ncp=5, graph=FALSE, scale.unit=TRUE)
+    ## arguments:
+    ## t(data)    - transposed data so that samples are rows, genes are columns
+    ## ncp        - the maximum number of principal components calculated
+    ## graph      - draw PCA plots?
+    ## scale.unit - should the variables be scaled to unit variance (yes!)
+    ##
+    ## return values:
+    ## pca$ind$coord - the values of the "rotated data" (coordinates for each
+    ##                dimension in the PCA plot). these are the scores for the
+    ##                samples for each PC. That is to say:
+    ##                loadings * measurements = score = rotated data = coordinates
+    ## pca$eig       - a matrix with three columns:
+    ##                 column 1: eigenvalues
+    ##                 column 2: percentage of variance per eigenvalue
+    ##                 column 3: cumulative percentage of variance
+    ##print(pca$ind$coord[,c(1,2)])
+    pca.data <- list(x=pca$ind$coord[,c(1,2)])
+    #print(head(pca.data))
+    #print(head(pca.data$x))
 
-  pc1 <- pca$var$coord[,1]/sqrt(pca$eig[1,1])
-  pc2 <- pca$var$coord[,2]/sqrt(pca$eig[2,1])
+    pc1 <- pca$var$coord[,1]/sqrt(pca$eig[1,1])
+    pc2 <- pca$var$coord[,2]/sqrt(pca$eig[2,1])
 
-  pc1.names <- names(pc1)
-  pc2.names <- names(pc2)
+    pc1.names <- names(pc1)
+    pc2.names <- names(pc2)
 
-  pca.var.per <- round(pca$eig[,2], digits=1)
-
-  ##### This is all my old "prcomp" code
-  ##pca <- prcomp(t(data), center=TRUE, scale. = TRUE, retx=TRUE)
-  ## arguments:
-  ## t(data) - transposed data so that samples are rows, genes are columns
-  ## center  - should the values be shifted to be zero centered?
-  ## scale.  - should the variables be scaled to unit variance (yes!)
-  ## retx    - should the rotated variables should be returned?
-  ##
-  ## return values:
-  ## pca$rotation = the eigenvectors (the loading vectors)
-  ## pca$sdev = the standard deviation of each eigen vector
-  ##    - note, I'm not sure why the standard deviation is returned, since
-  ##      you always want the variance. See below for code to get variances
-  ##      and the proportion of variance and the cumulative proportion
-  ## pca$x = the values of the "rotated data", these are the scores for the samples
-  ##      for each PC. That is to say, loadings * measurements = score = rotated data
-  ## pca$center = the value used for centering, if used.
-  ## pca$scale = the value used for scaling, if used.
-  ##
-  ##pc1 <- pca$rotation[,1]
-  ##pc1.names <- names(pc1)
-  ##pc2 <- pca$rotation[,2]
-  ##pc2.names <- names(pc2)
-  ##
-  ## draw a scree plot:
-  ##plot(pca, las=1)
-  ## las=1 make the values on the y-axis easier to read (by making them
-  ## perpendicular to the y-axis)
-  ##
-  ## print out what proportion of the variance each PC accounts for:
-  ##summary(pca)
-  ##
-  ## Now, let's calculate the proportion of the variance for each PC and the
-  ## cumulative proportion.
-  ##pca.var <- pca$sdev^2
-  ##pca.var.per <- round(pca.var/sum(pca.var)*100, 1)
-  ##pca.var.cum <- cumsum(pca.var.per)
+    pca.var.per <- round(pca$eig[,2], digits=1)
+  } else {
+    ##### This is all my old "prcomp" code
+    pca <- prcomp(t(data), center=TRUE, scale. = TRUE, retx=TRUE)
+    pca.data <- list(x=pca$x[,c(1,2)])
+    ## arguments:
+    ## t(data) - transposed data so that samples are rows, genes are columns
+    ## center  - should the values be shifted to be zero centered?
+    ## scale.  - should the variables be scaled to unit variance (yes!)
+    ## retx    - should the rotated variables should be returned?
+    ##
+    ## return values:
+    ## pca$rotation = the eigenvectors (the loading vectors)
+    ## pca$sdev = the standard deviation of each eigen vector
+    ##    - note, I'm not sure why the standard deviation is returned, since
+    ##      you always want the variance. See below for code to get variances
+    ##      and the proportion of variance and the cumulative proportion
+    ## pca$x = the values of the "rotated data", these are the scores for the samples
+    ##      for each PC. That is to say, loadings * measurements = score = rotated data
+    ## pca$center = the value used for centering, if used.
+    ## pca$scale = the value used for scaling, if used.
+    ##
+    pc1 <- pca$rotation[,1]
+    pc1.names <- names(pc1)
+    pc2 <- pca$rotation[,2]
+    pc2.names <- names(pc2)
+    ##
+    ## draw a scree plot:
+    ##plot(pca, las=1)
+    ## las=1 make the values on the y-axis easier to read (by making them
+    ## perpendicular to the y-axis)
+    ##
+    ## print out what proportion of the variance each PC accounts for:
+    ##summary(pca)
+    ##
+    ## Now, let's calculate the proportion of the variance for each PC and the
+    ## cumulative proportion.
+    pca.var <- pca$sdev^2
+    pca.var.per <- round(pca.var/sum(pca.var)*100, 1)
+    pca.var.cum <- cumsum(pca.var.per)
+  }
 
   boot.points <- data.frame()
 
@@ -267,44 +282,65 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
       cat("Bootstrap iteration:", i, "\n")
 
       boot.indices <- sample(x=c(1:num.genes), size=num.genes, replace=TRUE)
-
       boot.data <- data[boot.indices,]
-      ##pca.boot <- prcomp(t(boot.data), center=TRUE, scale. = TRUE, retx=TRUE)
-      ## NOTE: FactoMineR::PCA requires all rownames to be unique
-      rownames(boot.data) <- c(1:nrow(boot.data))
-      pca.boot <- FactoMineR::PCA(t(boot.data), ncp=5, graph=FALSE, scale.unit=TRUE)
-      rownames(pca.boot$var$coord) <- gene.names[boot.indices]
+
+      boot.pc1 <- vector()
+      boot.pc2 <- vector()
+      if (use.facto) {
+
+        ## NOTE: FactoMineR::PCA requires all rownames to be unique
+        rownames(boot.data) <- c(1:nrow(boot.data))
+        pca.boot <- FactoMineR::PCA(t(boot.data), ncp=5, graph=FALSE, scale.unit=TRUE)
+        rownames(pca.boot$var$coord) <- gene.names[boot.indices]
+
+        pca.boot.data <- list(x=pca.boot$ind$coord[,c(1,2)])
+
+
+        boot.pc1 <- pca.boot$var$coord[,1]/sqrt(pca.boot$eig[1,1])
+        boot.pc2 <- pca.boot$var$coord[,2]/sqrt(pca.boot$eig[2,1])
+
+      } else {
+        pca.boot <- prcomp(t(boot.data), center=TRUE, scale. = TRUE, retx=TRUE)
+
+        pca.boot.data <- list(x=pca.boot$x[,c(1,2)])
+
+        boot.pc1 <- pca.boot$rotation[,1]
+        boot.pc2 <- pca.boot$rotation[,2]
+      }
 
       if (correct.inversions) {
         ##
         ## make sure the loadings correlate with the loadings in the
         ## non-bootstrapped PCA
         ##boot.pc1 <- pca.boot$rotation[,1]
-        boot.pc1 <- pca.boot$var$coord[,1]/sqrt(pca.boot$eig[1,1])
+        ##boot.pc1 <- pca.boot$var$coord[,1]/sqrt(pca.boot$eig[1,1])
         boot.pc1.names <- levels(factor(names(boot.pc1)))
 
         #print(head(boot.pc1.names))
 
         pc1.cor <- cor(pc1[boot.pc1.names], boot.pc1[boot.pc1.names])
         if (pc1.cor < 0) {
-          #pca.boot$x[,1] <- pca.boot$x[,1] * -1
-          pca.boot$ind$coord[,1] <- pca.boot$ind$coord[,1] * -1
+          pca.boot.data$x[,1] <- pca.boot.data$x[,1] * -1
+          #pca.boot$ind$coord[,1] <- pca.boot$ind$coord[,1] * -1
         }
 
         ##boot.pc2 <- pca.boot$rotation[,2]
-        boot.pc2 <- pca.boot$var$coord[,2]/sqrt(pca.boot$eig[2,1])
+        ##boot.pc2 <- pca.boot$var$coord[,2]/sqrt(pca.boot$eig[2,1])
         boot.pc2.names <- levels(factor(names(boot.pc2)))
         pc2.cor <- cor(pc2[boot.pc1.names], boot.pc2[boot.pc1.names])
         if (pc2.cor < 0) {
-          #pca.boot$x[,2] <- pca.boot$x[,2] * -1
-          pca.boot$ind$coord[,2] <- pca.boot$ind$coord[,2] * -1
+          pca.boot.data$x[,2] <- pca.boot.data$x[,2] * -1
+          #pca.boot$ind$coord[,2] <- pca.boot$ind$coord[,2] * -1
         }
       }
-      ##boot.points <- rbind(boot.points, pca.boot$x[,c(1,2)])
+      boot.points <- rbind(boot.points, pca.boot.data$x[,c(1,2)])
       #print(pca.boot$ind$coord[,c(1,2)])
-      boot.points <- rbind(boot.points, pca.boot$ind$coord[,c(1,2)])
+      #boot.points <- rbind(boot.points, pca.boot$ind$coord[,c(1,2)])
     }
   }
+
+  #print(head(boot.points))
+
   ##cat("Drawing the 2-D PCA plot with the first two PCs...\n")
   if (exists("data.factors")) {
     if (length(data.factors[,1]) == 2) {
@@ -326,7 +362,8 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
 
   radii <- NULL
   return.samples.vector <- NULL
-  num.cells <- nrow(pca$ind$coord)
+  #num.cells <- nrow(pca$ind$coord)
+  num.cells <- nrow(pca.data$x)
   if (num.boot.samples > 0) {
     if (confidence.regions | (trim.proportion > 0)) {
       cat("Calculating ", round(confidence.size * 100, digits=2), "% confidence regions\n", sep="")
@@ -338,8 +375,8 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
       radii <- vector(length=num.cells)
 
       for (i in 1:num.cells) {
-        circle.center.x <- pca$ind$coord[i,1]
-        circle.center.y <- pca$ind$coord[i,2]
+        circle.center.x <- pca.data$x[i,1]
+        circle.center.y <- pca.data$x[i,2]
 
         radius <- step.size
 
@@ -377,7 +414,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
         ## now we need to delete the original samples and the
         ## bootstrapped versions of them...
         ##pca$x <- pca$x[-cutoff.indices,]
-        pca$ind$coord <- pca$ind$coord[-cutoff.indices,]
+        pca.data$x <- pca.data$x[-cutoff.indices,]
 
         rownames(boot.points) <- c(1:nrow(boot.points))
 
@@ -395,8 +432,8 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
     radii <- NULL
   }
 
-  if (nrow(pca$ind$coord) > 0) {
-    draw.pcaBootPlot(pca=pca, boot.points=boot.points,
+  if (nrow(pca.data$x) > 0) {
+    draw.pcaBootPlot(pca=pca.data, boot.points=boot.points,
                      pca.var.per=pca.var.per,
                      num.boot.samples=num.boot.samples,
                      plot.col=plot.col,
@@ -414,7 +451,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
     if (!is.null(pdf.filename)) {
       pdf(file=pdf.filename, width=pdf.width, height=pdf.height)
 
-      draw.pcaBootPlot(pca=pca, boot.points=boot.points,
+      draw.pcaBootPlot(pca=pca.data, boot.points=boot.points,
                        pca.var.per=pca.var.per,
                        num.boot.samples=num.boot.samples,
                        plot.col=plot.col,
@@ -455,18 +492,20 @@ draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
                              min.x=NULL, max.x=NULL, min.y=NULL, max.y=NULL,
                              radii=NULL) {
 
+  #print("about to draw the plot!")
+  #print(head(pca$x))
   if (num.boot.samples > 0 && (nrow(boot.points) > 0)) {
     if (is.null(max.x)) {
-      max.x <- max(boot.points[,1], pca$ind$coord[,1], na.rm=TRUE)
+      max.x <- max(boot.points[,1], pca$x[,1], na.rm=TRUE)
     }
     if (is.null(min.x)) {
-      min.x <- min(boot.points[,1], pca$ind$coord[,1], na.rm=TRUE)
+      min.x <- min(boot.points[,1], pca$x[,1], na.rm=TRUE)
     }
     if (is.null(max.y)) {
-      max.y <- max(boot.points[,2], pca$ind$coord[,2], na.rm=TRUE)
+      max.y <- max(boot.points[,2], pca$x[,2], na.rm=TRUE)
     }
     if (is.null(min.y)) {
-      min.y <- min(boot.points[,2], pca$ind$coord[,2], na.rm=TRUE)
+      min.y <- min(boot.points[,2], pca$x[,2], na.rm=TRUE)
     }
     plot(boot.points, type="n", xlim=c(min.x, max.x), ylim=c(min.y, max.y), xlab=paste("PC1 (", pca.var.per[1], "%)", sep=""),
          ylab=paste("PC2 (", pca.var.per[2], "%)", sep=""))
@@ -486,12 +525,12 @@ draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
       y.lims <- c(min.y, max.y)
     }
     if (exists("x.lims") & exists("y.lims")) {
-      plot(pca$ind$coord[,c(1,2)], type="n",
+      plot(pca$x[,c(1,2)], type="n",
            xlab=paste("PC1 (", pca.var.per[1], "%)", sep=""),
            ylab=paste("PC2 (", pca.var.per[2], "%)", sep=""),
            xlim=x.lims, ylim=y.lims)
     } else {
-      plot(pca$ind$coord[,c(1,2)], type="n",
+      plot(pca$x[,c(1,2)], type="n",
            xlab=paste("PC1 (", pca.var.per[1], "%)", sep=""),
            ylab=paste("PC2 (", pca.var.per[2], "%)", sep=""))
     }
@@ -499,10 +538,10 @@ draw.pcaBootPlot <- function(pca=NULL, boot.points=NULL, pca.var.per=NULL,
   }
 
   if(!is.null(radii)) {
-    symbols(pca$ind$coord[,c(1,2)], circles=radii, add=TRUE, inches=FALSE, lty=2, col="#bdbdbd77")
+    symbols(pca$x[,c(1,2)], circles=radii, add=TRUE, inches=FALSE, lty=2, col="#bdbdbd77")
   }
 
-  points(pca$ind$coord[,c(1,2)], pch=plot.pch)
+  points(pca$x[,c(1,2)], pch=plot.pch)
 
   if (draw.legend) {
     if (is.null(legend.names)) {
