@@ -11,7 +11,7 @@ pcaBootPlot(data = NULL, groups = NULL, min.value = 1,
   legend.y = NULL, transparency = 77, min.x = NULL, max.x = NULL,
   min.y = NULL, max.y = NULL, correct.inversions = TRUE,
   confidence.regions = FALSE, confidence.size = 0.95, step.size = 0.1,
-  trim.proportion = 0, return.samples = FALSE)
+  trim.proportion = 0, return.samples = FALSE, use.prcomp = FALSE)
 }
 \arguments{
 \item{data}{A data.frame where the first column is named "ID" and contains IDs
@@ -100,9 +100,15 @@ the confidence regions. This should be a value between 0 and 1. For example,
 if you set it to 0.1, then the top 10% of entries with the lagest confidence
 regions will be removed from the plot.}
 
-\item{return.samples}{The default value is \strong{\code{FALSE}} If this is set
+\item{return.samples}{The default value is \strong{\code{FALSE}}. If this is set
 to \code{TRUE} then the program will return the names of the samples that were
 included in the plot. This can be useful if \code{trim.proportion} > 0.}
+
+\item{use.prcomp}{The default value is \strong{\code{FALSE}}. Usually,
+pcaBootPlot uses FactoMineR to process samples. However, this can be
+unnecessarily slow if there are less than 50 samples. By setting use.prcomp to
+\strong{\code{TRUE}}, it will use prcomp() to process samples and will,
+most likely, run much faster.}
 }
 \description{
 pcaBootPlot draws a 2D PCA plot using the first 2 principal components using

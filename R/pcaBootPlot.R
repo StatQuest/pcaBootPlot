@@ -70,9 +70,14 @@
 #' the confidence regions. This should be a value between 0 and 1. For example,
 #' if you set it to 0.1, then the top 10% of entries with the lagest confidence
 #' regions will be removed from the plot.
-#' @param return.samples The default value is \strong{\code{FALSE}} If this is set
+#' @param return.samples The default value is \strong{\code{FALSE}}. If this is set
 #' to \code{TRUE} then the program will return the names of the samples that were
 #' included in the plot. This can be useful if \code{trim.proportion} > 0.
+#' @param use.prcomp The default value is \strong{\code{FALSE}}. Usually,
+#' pcaBootPlot uses FactoMineR to process samples. However, this can be
+#' unnecessarily slow if there are less than 50 samples. By setting use.prcomp to
+#' \strong{\code{TRUE}}, it will use prcomp() to process samples and will,
+#' most likely, run much faster.
 #'
 #' @examples
 #'
@@ -101,7 +106,8 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
                         confidence.size=0.95,
                         step.size=0.1,
                         trim.proportion=0,
-                        return.samples=FALSE) {
+                        return.samples=FALSE,
+                        use.prcomp=FALSE) {
 
   #library(RColorBrewer)
 
@@ -111,6 +117,14 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   }
   num.samples <- (ncol(data)-1)
   cat("Performing PCA on", num.samples, "samples\n")
+
+  use.facto <- TRUE
+  if (use.prcomp == TRUE) {
+    use.facto <- FALSE
+  } else if (num.samples < 50) {
+    cat("\nUsing FactoMineR for analysis. However you may be able to speed up\n")
+    cat("  computation by setting use.prcomp to TRUE\n\n")
+  }
 
   ##
   ## first, we need to find duplicate entries and average the values for them.
@@ -190,8 +204,6 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   ##
   ## originally I just used the built in program, "prcomp" and that worked great
   ## until sample size > 100.
-  #use.facto <- TRUE
-  use.facto <- FALSE
 
   pca.data <- data.frame()
   pc1 <- vector()
@@ -200,7 +212,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   pc2.names <- vector()
   pca.var.per <- vector()
   if (use.facto) {
-    cat("Using FactoMineR\n")
+    cat("Using FactoMineR for analysis\n")
     pca <- FactoMineR::PCA(t(data), ncp=5, graph=FALSE, scale.unit=TRUE)
     ## arguments:
     ## t(data)    - transposed data so that samples are rows, genes are columns
@@ -230,6 +242,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
 
     pca.var.per <- round(pca$eig[,2], digits=1)
   } else {
+    cat("Using prcomp for analysis\n")
     ##### This is all my old "prcomp" code
     pca <- prcomp(t(data), center=TRUE, scale. = TRUE, retx=TRUE)
     pca.data <- list(x=pca$x[,c(1,2)])
