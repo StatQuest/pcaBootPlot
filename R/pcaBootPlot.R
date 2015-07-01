@@ -3,7 +3,8 @@
 #' pcaBootPlot draws a 2D PCA plot using the first 2 principal components using
 #'   the original and bootstrapped data to give some sense of variability.
 #'
-#' @param data A data.frame where the first column is named "ID" and contains IDs
+#' @param data A data.frame or an edgeR or DESeq2 object. If a data.frame, the
+#'   first column must be named "ID" and contain IDs
 #'   for each item measured. Measurements for each sample are in subsequent columns.
 #' @param groups The default value is \strong{\code{NULL}}.\cr\cr
 #'   If you want use different colors
