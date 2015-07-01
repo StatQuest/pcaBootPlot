@@ -1,6 +1,6 @@
 Package: pcaBootPlot
 Title: Create 2D Principal Component Plots with Bootstrapping
-Version: 0.2.0
+Version: 0.2.1
 Author: Joshua Starmer
 Maintainer: Joshua Starmer <starmer@unc.edu>
 Description: Draws a 2D principal component plot using the first 2 principal
@@ -12,6 +12,8 @@ LazyData: true
 Imports:
   FactoMineR,
   RColorBrewer
-Suggests: knitr
+Suggests:
+  knitr,
+  DESeq2
 VignetteBuilder: knitr
 URL: https://github.com/starmerj/pcaBootPlot

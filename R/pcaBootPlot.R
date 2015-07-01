@@ -109,12 +109,20 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
                         return.samples=FALSE,
                         use.prcomp=FALSE) {
 
-  #library(RColorBrewer)
-
-
   if(is.null(data)) {
     return("You must provide a data.frame for the data parameter")
   }
+
+  ## check to see if we have a edgeR object
+  if (class(data)[1] == "DGEList") {
+    data <- data.frame(ID=data$gene, data$counts)
+  }
+
+  ## check to see if we have a DEseq object
+  if (class(data)[1] == "DESeqDataSet") {
+    data <- data.frame(ID=rownames(data), DESeq2::counts(data))
+  }
+
   num.samples <- (ncol(data)-1)
   cat("Performing PCA on", num.samples, "samples\n")
 
