@@ -166,6 +166,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   ## Only keep entries with a minimum value (per all samples, or per group)
   ##
   cat("Filtering entries based on min.val and groups...\n")
+  data.factors <- NULL
   if (!is.null(groups)) {
     data.factors <- as.data.frame(table(factor(groups)))
   }
@@ -364,7 +365,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   #print(head(boot.points))
 
   ##cat("Drawing the 2-D PCA plot with the first two PCs...\n")
-  if (exists("data.factors")) {
+  if (!is.null(data.factors)) {
     if (length(data.factors[,1]) == 2) {
       hex.colors <- RColorBrewer::brewer.pal(n=3, name="Set1")[1:2]
       plot.col <- paste(rep(hex.colors, data.factors[,2]), transparency, sep="")
