@@ -4,7 +4,7 @@
 \alias{pcaBootPlot}
 \title{Create 2D PCA Plots with Bootstrapping}
 \usage{
-pcaBootPlot(data = NULL, groups = NULL, min.value = 1,
+pcaBootPlot(data = NULL, groups = NULL, scale = TRUE, min.value = 1,
   all.min.value = FALSE, num.boot.samples = 100, log2.transform = TRUE,
   pdf.filename = NULL, pdf.width = 6, pdf.height = 6,
   draw.legend = FALSE, legend.names = NULL, legend.x = NULL,
@@ -26,6 +26,8 @@ For example, if you have three consecutive columns of
 "untreated" samples followed by three consecutive columns of "treated" samples,
 you can set this argument to c(1,1,1,2,2,2), and the untreated samples will be
 red circles and the treated samples will be blue triangles.}
+
+\item{scale}{Scale the rows to unit variance. Default is \strong{\code{TRUE}}}
 
 \item{min.value}{The default value is \strong{1}.\cr\cr
 This allows you to filter out rows (entries) that will not conribute

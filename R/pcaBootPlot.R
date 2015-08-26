@@ -14,6 +14,7 @@
 #'   "untreated" samples followed by three consecutive columns of "treated" samples,
 #'   you can set this argument to c(1,1,1,2,2,2), and the untreated samples will be
 #'   red circles and the treated samples will be blue triangles.
+#' @param scale Scale the rows to unit variance. Default is \strong{\code{TRUE}}
 #' @param min.value The default value is \strong{1}.\cr\cr
 #'   This allows you to filter out rows (entries) that will not conribute
 #'   to the PCA. For example, if you are performing PCA on RNA-seq data, you
@@ -92,7 +93,7 @@
 #'
 
 #' @export
-pcaBootPlot <- function(data=NULL, groups=NULL,
+pcaBootPlot <- function(data=NULL, groups=NULL, scale=TRUE,
                         min.value=1, all.min.value=FALSE,
                         num.boot.samples=100, log2.transform=TRUE,
                         pdf.filename=NULL,
@@ -223,7 +224,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   pca.var.per <- vector()
   if (use.facto) {
     cat("Using FactoMineR for analysis\n")
-    pca <- FactoMineR::PCA(t(data), ncp=5, graph=FALSE, scale.unit=TRUE)
+    pca <- FactoMineR::PCA(t(data), ncp=5, graph=FALSE, scale.unit=scale)
     ## arguments:
     ## t(data)    - transposed data so that samples are rows, genes are columns
     ## ncp        - the maximum number of principal components calculated
@@ -254,7 +255,7 @@ pcaBootPlot <- function(data=NULL, groups=NULL,
   } else {
     cat("Using prcomp for analysis\n")
     ##### This is all my old "prcomp" code
-    pca <- prcomp(t(data), center=TRUE, scale. = TRUE, retx=TRUE)
+    pca <- prcomp(t(data), center=TRUE, scale. = scale, retx=TRUE)
     pca.data <- list(x=pca$x[,c(1,2)])
     ## arguments:
     ## t(data) - transposed data so that samples are rows, genes are columns
